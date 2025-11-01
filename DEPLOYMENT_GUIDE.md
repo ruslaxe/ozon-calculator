@@ -46,18 +46,20 @@
   - Устанавливает зависимости
   - Применяет миграции базы данных
   - Собирает статические файлы
-- **Start Command**: **ОСТАВЬТЕ ПУСТЫМ** - Render автоматически использует `Procfile` из проекта!
 
-**Вариант B (Без Procfile):**
-
-Если Procfile не работает, укажите Start Command вручную:
-```bash
-gunicorn ozon_calculator.wsgi:application --bind 0.0.0.0:$PORT
-```
-
-⚠️ **ВАЖНО:** 
-- НЕ используйте `bash gunicorn` - это вызовет ошибку!
-- НЕ указывайте Start Command, если есть Procfile в проекте!
+  ⚠️ **ВАЖНО:** Миграции должны выполняться в Build Command, а НЕ в Procfile!
+- **Start Command**: 
+  
+  **ПРОБЛЕМА:** Render иногда не видит Procfile автоматически.
+  
+  **РЕШЕНИЕ:** Укажите Start Command вручную:
+  ```bash
+  gunicorn ozon_calculator.wsgi:application --bind 0.0.0.0:$PORT --timeout 120 --workers 2 --log-level info
+  ```
+  
+  ⚠️ **ВАЖНО:** 
+  - НЕ используйте `bash gunicorn` - это вызовет ошибку!
+  - Команда должна начинаться с `gunicorn`, а не `bash gunicorn`!
 
 ### Шаг 4: Переменные окружения
 
@@ -67,9 +69,11 @@ gunicorn ozon_calculator.wsgi:application --bind 0.0.0.0:$PORT
 SECRET_KEY=сгенерируйте-новый-секретный-ключ
 DEBUG=False
 ALLOWED_HOSTS=ozon-calculator.onrender.com
-CORS_ALLOW_ALL_ORIGINS=False
-CORS_ALLOWED_ORIGINS=https://ozon-calculator.onrender.com
+CORS_ALLOW_ALL_ORIGINS=True
+CORS_ALLOW_CREDENTIALS=True
 ```
+
+⚠️ **ВАЖНО**: Для работы категорий на сайте нужно установить `CORS_ALLOW_ALL_ORIGINS=True`, так как фронтенд и API на одном домене.
 
 **Как сгенерировать SECRET_KEY:**
 

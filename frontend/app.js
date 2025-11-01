@@ -1,10 +1,21 @@
 // API конфигурация
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
+// Определяем базовый URL API динамически на основе текущего хоста
+const API_BASE_URL = (() => {
+    // В продакшене используем относительный путь
+    // В режиме разработки можно использовать полный URL
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return 'http://127.0.0.1:8000/api';
+    }
+    // Относительный путь работает везде
+    return '/api';
+})();
 
 // Глобальные переменные
 let categories = [];
 let selectedCategory = null;
 let searchTimeout = null;
+let categoriesLoaded = false; // Флаг загрузки категорий
 
 // Элементы DOM
 const elements = {
@@ -65,12 +76,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Загрузка первых N категорий (для первичного отображения)
 async function loadCategories() {
+    if (categoriesLoaded) return categories; // Уже загружены
+    
     try {
         const response = await fetch(`${API_BASE_URL}/categories/?page_size=50`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         categories = data.results || [];
+        if (categories.length > 0) {
+            categoriesLoaded = true;
+            console.log(`Загружено ${categories.length} категорий`);
+        }
+        return categories;
     } catch (error) {
         console.error('Ошибка загрузки категорий:', error);
+        // При ошибке сети пытаемся использовать относительный путь еще раз
+        if (API_BASE_URL !== '/api') {
+            try {
+                const fallbackResponse = await fetch('/api/categories/?page_size=50');
+                if (fallbackResponse.ok) {
+                    const fallbackData = await fallbackResponse.json();
+                    categories = fallbackData.results || [];
+                    if (categories.length > 0) {
+                        categoriesLoaded = true;
+                        console.log(`Загружено ${categories.length} категорий (fallback)`);
+                        return categories;
+                    }
+                }
+            } catch (e) {
+                console.error('Fallback также не сработал:', e);
+            }
+        }
+        categoriesLoaded = false;
+        return [];
     }
 }
 
@@ -79,11 +119,35 @@ async function searchCategoriesServer(query) {
     try {
         const url = `${API_BASE_URL}/categories/?search=${encodeURIComponent(query)}&page_size=20`;
         const response = await fetch(url);
-        if (!response.ok) return [];
+        if (!response.ok) {
+            // Пробуем fallback на относительный путь
+            if (API_BASE_URL !== '/api') {
+                const fallbackUrl = `/api/categories/?search=${encodeURIComponent(query)}&page_size=20`;
+                const fallbackResponse = await fetch(fallbackUrl);
+                if (fallbackResponse.ok) {
+                    const fallbackData = await fallbackResponse.json();
+                    return fallbackData.results || [];
+                }
+            }
+            return [];
+        }
         const data = await response.json();
         return data.results || [];
     } catch (e) {
         console.error('Ошибка поиска категорий:', e);
+        // Пробуем fallback
+        if (API_BASE_URL !== '/api') {
+            try {
+                const fallbackUrl = `/api/categories/?search=${encodeURIComponent(query)}&page_size=20`;
+                const fallbackResponse = await fetch(fallbackUrl);
+                if (fallbackResponse.ok) {
+                    const fallbackData = await fallbackResponse.json();
+                    return fallbackData.results || [];
+                }
+            } catch (e2) {
+                console.error('Fallback поиска также не сработал:', e2);
+            }
+        }
         return [];
     }
 }
@@ -92,7 +156,15 @@ async function searchCategoriesServer(query) {
 function setupEventListeners() {
     // Поиск категории
     elements.categorySearch.addEventListener('input', handleCategorySearch);
-    elements.categorySearch.addEventListener('focus', handleCategorySearch);
+    // При фокусе на поле поиска сразу показываем категории
+    elements.categorySearch.addEventListener('focus', async () => {
+        if (!categoriesLoaded) {
+            await loadCategories();
+        }
+        if (categories.length > 0 && elements.categorySearch.value.trim().length === 0) {
+            displayCategories(categories);
+        }
+    });
     document.addEventListener('click', (e) => {
         if (!elements.categorySearch.contains(e.target) && !elements.categoryDropdown.contains(e.target)) {
             elements.categoryDropdown.classList.add('hidden');
@@ -120,19 +192,45 @@ function setupEventListeners() {
 }
 
 // Поиск категорий
-function handleCategorySearch() {
+async function handleCategorySearch() {
     const query = elements.categorySearch.value.trim();
+    
+    // Если категории еще не загружены, загружаем их при фокусе
+    if (!categoriesLoaded && query.length === 0) {
+        await loadCategories();
+    }
+    
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(async () => {
         if (query.length === 0) {
+            // Если категории еще не загружены, загружаем их
+            if (!categoriesLoaded) {
+                await loadCategories();
+            }
             // Показываем короткий список локально загруженных категорий
-            displayCategories(categories);
+            if (categories.length > 0) {
+                displayCategories(categories);
+            } else {
+                // Пытаемся загрузить еще раз
+                await loadCategories();
+                if (categories.length > 0) {
+                    displayCategories(categories);
+                } else {
+                    elements.categoryDropdown.innerHTML = '<div class="category-item">Начните вводить название для поиска</div>';
+                    elements.categoryDropdown.classList.remove('hidden');
+                }
+            }
             return;
         }
         const results = await searchCategoriesServer(query);
         // Кэшируем найденные категории для повторного выбора по id
-        categories = results;
-        displayCategories(results);
+        if (results.length > 0) {
+            categories = results;
+            displayCategories(results);
+        } else {
+            elements.categoryDropdown.innerHTML = '<div class="category-item">Категории не найдены</div>';
+            elements.categoryDropdown.classList.remove('hidden');
+        }
     }, 250);
 }
 
