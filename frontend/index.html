@@ -1,0 +1,222 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор Ozon - Расчёт юнит-экономики</title>
+    <link rel="stylesheet" href="{% static 'styles.css' %}">
+</head>
+<body>
+    <div class="container">
+        <!-- Левая панель - Параметры -->
+        <div class="left-panel">
+            <h1>Параметры товара</h1>
+            
+            <!-- Категория -->
+            <div class="form-group">
+                <label>Категория</label>
+                <div class="category-select-wrapper">
+                    <input 
+                        type="text" 
+                        id="categorySearch" 
+                        placeholder="Начните вводить название категории..."
+                        autocomplete="off"
+                    >
+                    <div id="categoryDropdown" class="category-dropdown hidden"></div>
+                </div>
+                <div id="categoryCommissions" class="category-commissions hidden">
+                    Вознаграждение Ozon: FBO — <span id="fboCommission"></span>%, FBS — <span id="fbsCommission"></span>%
+                </div>
+            </div>
+
+            <!-- Цена и Вес -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Цена, ₽</label>
+                    <input type="number" id="price" value="805" min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Вес, кг</label>
+                    <input type="number" id="weight" value="0.15" min="0" step="0.001">
+                </div>
+            </div>
+
+            <!-- Габариты / Объём -->
+            <div class="form-group">
+                <div class="toggle-buttons">
+                    <button id="dimensionsBtn" class="toggle-btn active">Габариты</button>
+                    <button id="volumeBtn" class="toggle-btn">Объём</button>
+                </div>
+            </div>
+
+            <!-- Габариты -->
+            <div id="dimensionsInputs" class="dimensions-section">
+                <div class="form-row three-columns">
+                    <div class="form-group">
+                        <label>Длина, см</label>
+                        <input type="number" id="length" value="27" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Ширина, см</label>
+                        <input type="number" id="width" value="24" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Высота, см</label>
+                        <input type="number" id="height" value="2" min="0" step="0.01">
+                    </div>
+                </div>
+                <div class="calculated-volume">
+                    Объём товара <span id="calculatedVolume">1.296</span> л
+                </div>
+            </div>
+
+            <!-- Объём -->
+            <div id="volumeInputs" class="volume-section hidden">
+                <div class="form-group">
+                    <label>Объём товара, л</label>
+                    <input type="number" id="volumeInput" value="1.296" min="0" step="0.001">
+                </div>
+            </div>
+
+            <!-- Показать поля для расчёта -->
+            <div class="form-group toggle-section">
+                <div class="toggle-header">
+                    <span>Показать поля для расчёта чистой прибыли</span>
+                    <label class="switch">
+                        <input type="checkbox" id="showProfitFields" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Поля для расчёта -->
+            <div id="profitFields" class="profit-fields">
+                <!-- Налог -->
+                <div class="form-group">
+                    <label>Налог, %</label>
+                    <select id="taxRate" name="taxRate">
+                        <option value="0">0%</option>
+                        <option value="1">1%</option>
+                        <option value="2">2%</option>
+                        <option value="3">3%</option>
+                        <option value="4">4%</option>
+                        <option value="5">5%</option>
+                        <option value="6" selected>6%</option>
+                        <option value="7">7%</option>
+                        <option value="8">8%</option>
+                        <option value="9">9%</option>
+                        <option value="10">10%</option>
+                        <option value="11">11%</option>
+                        <option value="12">12%</option>
+                        <option value="13">13%</option>
+                        <option value="14">14%</option>
+                        <option value="15">15%</option>
+                        <option value="16">16%</option>
+                        <option value="17">17%</option>
+                        <option value="18">18%</option>
+                        <option value="19">19%</option>
+                        <option value="20">20%</option>
+                        <option value="21">21%</option>
+                        <option value="22">22%</option>
+                        <option value="23">23%</option>
+                        <option value="24">24%</option>
+                        <option value="25">25%</option>
+                        <option value="26">26%</option>
+                        <option value="27">27%</option>
+                        <option value="28">28%</option>
+                        <option value="29">29%</option>
+                        <option value="30">30%</option>
+                    </select>
+                    <small class="hint">Налог считается от цены товара</small>
+                </div>
+
+                <!-- Выкуп и Время доставки -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>
+                            Выкуп, %
+                            <span class="info-icon" title="Процент выкупа товаров">ⓘ</span>
+                        </label>
+                        <input type="number" id="buyoutRate" value="90" min="0" max="100" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            Время доставки, ч
+                            <span class="info-icon" title="Время доставки в часах">ⓘ</span>
+                        </label>
+                        <input type="number" id="deliveryTime" value="45" min="1" step="1">
+                    </div>
+                </div>
+
+                <!-- Себестоимость -->
+                <div class="form-group">
+                    <div class="toggle-buttons small">
+                        <button id="costPerUnitBtn" class="toggle-btn active">Себестоимость товара</button>
+                        <button id="costPerBatchBtn" class="toggle-btn">Себестоимость партии</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Себестоимость товара, ₽ за шт</label>
+                    <input type="number" id="costPrice" value="215" min="0" step="0.01">
+                </div>
+
+                <!-- Прочие затраты -->
+                <div class="form-group">
+                    <label>Прочие затраты, ₽ на шт</label>
+                    <input type="number" id="otherCosts" value="10" min="0" step="0.01">
+                    <small class="hint">Не связанные с товаром напрямую. Например, маркетинг или административные расходы</small>
+                </div>
+
+                <!-- Количество продаж -->
+                <div class="form-group">
+                    <label>Количество продаж в месяц, шт</label>
+                    <input type="number" id="monthlySales" value="1000" min="1" step="1">
+                    <small class="hint">Узнайте прибыль от продажи, например, 100 товаров</small>
+                </div>
+
+                <!-- Доля рекламных расходов -->
+                <div class="form-group hidden">
+                    <label>Доля рекламных расходов, %</label>
+                    <input type="number" id="adCosts" value="10" min="0" max="100" step="1">
+                </div>
+            </div>
+
+            <!-- Кнопки -->
+            <div class="form-actions">
+                <button id="calculateBtn" class="btn btn-primary">Пересчитать</button>
+                <button id="resetBtn" class="btn btn-secondary">Сбросить настройки</button>
+            </div>
+        </div>
+
+        <!-- Правая панель - Результаты -->
+        <div class="right-panel">
+            <div class="results-header">
+                <h2>Расчёт прибыли и затрат</h2>
+                <button id="downloadBtn" class="btn-link">Скачать расчёт</button>
+            </div>
+
+            <div id="resultsTable" class="results-table">
+                <!-- Результаты будут добавлены динамически -->
+            </div>
+
+            <div id="kpiTiles" class="kpi-tiles hidden"></div>
+
+            <div id="breakdowns" class="breakdowns hidden"></div>
+
+            <div id="sensitivity" class="sensitivity hidden"></div>
+
+            <div id="loadingSpinner" class="loading hidden">
+                <div class="spinner"></div>
+                <p>Расчёт...</p>
+            </div>
+
+            <div id="errorMessage" class="error-message hidden"></div>
+        </div>
+    </div>
+
+    <script src="{% static 'app.js' %}"></script>
+</body>
+</html>
+
