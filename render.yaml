@@ -15,4 +15,6 @@ services:
         value: True
       - key: CORS_ALLOW_CREDENTIALS
         value: True
+      - key: SKIP_CATEGORY_AUTOLOAD
+        value: True
 

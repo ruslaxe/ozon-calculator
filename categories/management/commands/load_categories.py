@@ -12,6 +12,7 @@ from django.core.management.base import BaseCommand
 from categories.models import Category
 import os
 from pathlib import Path
+from unicodedata import normalize
 from django.conf import settings
 
 
@@ -50,10 +51,32 @@ class Command(BaseCommand):
         if not test_only:
             # Ищем Excel файлы в проекте
             base_dir = Path(settings.BASE_DIR)
-            excel_files = [
-                base_dir / 'docs' / 'Таблица_категорий_для_расчёта_вознаграждения_10112025_1761297339.xlsx',
-                base_dir / 'docs' / 'table 1.xlsx',
+            docs_dir = base_dir / 'docs'
+            default_name = 'Таблица_категорий_для_расчёта_вознаграждения_10112025_1761297339.xlsx'
+            name_variants = [
+                default_name,
+                normalize('NFC', default_name),
+                normalize('NFD', default_name),
             ]
+
+            excel_files = []
+            seen = set()
+
+            for name in name_variants:
+                candidate = docs_dir / name
+                key = str(candidate)
+                if key in seen:
+                    continue
+                seen.add(key)
+                excel_files.append(candidate)
+
+            for pattern in ['Таблица*вознаграждения*.xlsx', 'table 1.xlsx']:
+                for candidate in docs_dir.glob(pattern):
+                    key = str(candidate)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    excel_files.append(candidate)
             
             if excel_file:
                 excel_files.insert(0, Path(excel_file))
