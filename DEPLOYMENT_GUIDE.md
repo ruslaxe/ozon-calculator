@@ -28,6 +28,8 @@
 
 ### Шаг 3: Настройка
 
+**Вариант A (Рекомендуется - с Procfile):**
+
 Заполните форму:
 
 - **Name**: `ozon-calculator` (или любое имя)
@@ -37,12 +39,25 @@
 - **Root Directory**: оставьте пустым
 - **Build Command**:
   ```bash
-  pip install -r requirements.txt && python manage.py collectstatic --noinput
+  pip install -r requirements.txt && python manage.py migrate --noinput && python manage.py collectstatic --noinput
   ```
-- **Start Command**:
-  ```bash
-  gunicorn ozon_calculator.wsgi:application
-  ```
+  
+  Эта команда:
+  - Устанавливает зависимости
+  - Применяет миграции базы данных
+  - Собирает статические файлы
+- **Start Command**: **ОСТАВЬТЕ ПУСТЫМ** - Render автоматически использует `Procfile` из проекта!
+
+**Вариант B (Без Procfile):**
+
+Если Procfile не работает, укажите Start Command вручную:
+```bash
+gunicorn ozon_calculator.wsgi:application --bind 0.0.0.0:$PORT
+```
+
+⚠️ **ВАЖНО:** 
+- НЕ используйте `bash gunicorn` - это вызовет ошибку!
+- НЕ указывайте Start Command, если есть Procfile в проекте!
 
 ### Шаг 4: Переменные окружения
 
@@ -58,12 +73,37 @@ CORS_ALLOWED_ORIGINS=https://ozon-calculator.onrender.com
 
 **Как сгенерировать SECRET_KEY:**
 
-В терминале выполните:
+**Способ 1 (если виртуальное окружение активировано):**
 ```bash
+cd "/Users/ruslanilin/Desktop/cursor-prod/ecom-economy/project file"
+source venv/bin/activate  # или venv\Scripts\activate на Windows
 python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
 ```
 
-Скопируйте результат и вставьте в `SECRET_KEY`.
+**Способ 2 (с python3 напрямую, если Django установлен глобально):**
+```bash
+python3 -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
+
+**Способ 3 (онлайн генератор):**
+Или используйте онлайн-генератор: https://djecrety.ir/
+
+**Способ 4 (используя скрипт из проекта):**
+```bash
+cd "/Users/ruslanilin/Desktop/cursor-prod/ecom-economy/project file"
+source venv/bin/activate
+python generate_secret_key.py
+```
+
+**Способ 5 (через Django management команду):**
+```bash
+source venv/bin/activate
+python manage.py shell -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
+
+**Рекомендация:** Используйте **Способ 1** или **Способ 4** - они самые надежные.
+
+Скопируйте сгенерированный ключ и вставьте в `SECRET_KEY` в переменных окружения.
 
 ### Шаг 5: Деплой
 
