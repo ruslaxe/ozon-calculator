@@ -186,8 +186,9 @@ SPECTACULAR_SETTINGS = {
 }
 
 # Security settings для продакшена
+# Отключены SECURE_SSL_REDIRECT для Render (Render сам обрабатывает HTTPS)
 if not DEBUG:
-    SECURE_SSL_REDIRECT = True
+    # SECURE_SSL_REDIRECT = True  # Отключено для Render
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
